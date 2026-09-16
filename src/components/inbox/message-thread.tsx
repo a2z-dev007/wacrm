@@ -481,7 +481,11 @@ export function MessageThread({
 
         if (!res.ok) {
           const reason = payload?.error || `HTTP ${res.status}`;
-          console.error("Failed to send message:", reason);
+          console.error("[inbox] Failed to send message", {
+            status: res.status,
+            conversationId: conversation.id,
+            error: reason,
+          });
           toast.error(`Failed to send: ${reason}`);
           // Mark the optimistic bubble as failed so the user sees what happened
           onUpdateMessage(tempId, { status: "failed" });

@@ -23,18 +23,67 @@ export interface MetaPhoneInfo {
   quality_rating?: string
 }
 
+export interface MetaErrorBody {
+  message?: string
+  type?: string
+  code?: number
+  error_subcode?: number
+  error_user_title?: string
+  error_user_msg?: string
+  fbtrace_id?: string
+}
+
 interface MetaErrorResponse {
-  error?: { message?: string; code?: number; type?: string }
+  error?: MetaErrorBody
+}
+
+/**
+ * Build a single-line Meta Graph error for logs + API responses.
+ * The Graph envelope's `message` is often just "Authentication Error"
+ * — callers need code / type / HTTP status to actually debug it.
+ */
+export function formatMetaErrorMessage(
+  httpStatus: number,
+  error: MetaErrorBody | undefined,
+  fallback: string
+): string {
+  const primary =
+    error?.error_user_msg || error?.message || fallback
+
+  const bits: string[] = [`HTTP ${httpStatus}`]
+  if (error?.type) bits.push(`type=${error.type}`)
+  if (error?.code != null) bits.push(`code=${error.code}`)
+  if (error?.error_subcode != null) bits.push(`subcode=${error.error_subcode}`)
+  if (error?.error_user_title) bits.push(`title=${error.error_user_title}`)
+  if (error?.fbtrace_id) bits.push(`fbtrace_id=${error.fbtrace_id}`)
+
+  let hint = ''
+  if (
+    error?.code === 190 ||
+    /authentication error/i.test(primary)
+  ) {
+    hint =
+      ' Hint: the WhatsApp access token is invalid or expired. Open Settings → WhatsApp and save a current token from Meta (System User → Generate token). Inbound webhooks can still succeed with a dead send token.'
+  }
+
+  return `${primary} (${bits.join(', ')}).${hint}`
 }
 
 async function throwMetaError(response: Response, fallback: string): Promise<never> {
-  let message = fallback
+  let raw = ''
+  let data: MetaErrorResponse | undefined
   try {
-    const data = (await response.json()) as MetaErrorResponse
-    if (data.error?.message) message = data.error.message
+    raw = await response.text()
+    data = JSON.parse(raw) as MetaErrorResponse
   } catch {
-    // response body wasn't JSON — keep the fallback
+    // body wasn't JSON — keep the fallback
   }
+  const message = formatMetaErrorMessage(response.status, data?.error, fallback)
+  console.error('[meta-api] Graph API request failed', {
+    httpStatus: response.status,
+    url: response.url,
+    error: data?.error ?? raw.slice(0, 800) ?? fallback,
+  })
   throw new Error(message)
 }
 

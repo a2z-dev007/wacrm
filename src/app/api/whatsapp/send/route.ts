@@ -193,6 +193,12 @@ export async function POST(request: Request) {
       })
     } catch (err) {
       if (err instanceof SendMessageError) {
+        console.error('[whatsapp/send] failed', {
+          code: err.code,
+          status: err.status,
+          error: err.message,
+          conversationId,
+        })
         return NextResponse.json(
           { error: err.message },
           { status: err.status }

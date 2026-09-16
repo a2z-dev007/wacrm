@@ -90,6 +90,9 @@ npm run dev
 Open <http://localhost:3000>. You'll be redirected to `/login` (or
 `/dashboard` if already signed in).
 
+Full walkthrough (Supabase migrations, Meta token, webhook, first
+test message): **[docs/setup-guide.md](./docs/setup-guide.md)**.
+
 ## 🚀 Deploy on Hostinger (recommended)
 
 <p align="center">
@@ -138,19 +141,20 @@ Full walkthrough with screenshots:
 
 ## Documentation
 
-Full self-host documentation — Supabase migrations, WhatsApp Business
-API config, and production deploy — lives at
+In-repo docs (product, architecture, ops, API):
+
+- **[docs/README.md](./docs/README.md)** — start here
+- [Setup guide](./docs/setup-guide.md) — clone → Supabase → Meta → first inbound/outbound message
+- [WhatsApp Meta integration](./docs/whatsapp-meta.md) — Cloud API tokens, webhook, register, templates, troubleshooting
+- [Product & dashboard guide](./docs/product-guide.md) — features and examples (ops / CS / sales)
+- [Architecture](./docs/architecture.md) — how inbound, send, automations, flows, and AI fit together
+- [Engineering & operations](./docs/engineering.md) — env, migrations, Meta tokens, cron, debugging
+- [Public API](./docs/public-api.md) — `/api/v1`
+- [MCP server](./docs/mcp.md)
+
+Hosted self-host walkthroughs (screenshots, Hostinger) also live at
 **[wacrm.tech/docs](https://wacrm.tech/docs)**
 (source: [ArnasDon/wacrm-site](https://github.com/ArnasDon/wacrm-site)).
-
-Key pages:
-- [Getting started](https://wacrm.tech/docs/getting-started)
-- [Supabase setup](https://wacrm.tech/docs/supabase-setup)
-- [WhatsApp setup](https://wacrm.tech/docs/whatsapp-setup)
-- [Environment variables](https://wacrm.tech/docs/environment-variables)
-- [Deploy on Hostinger](https://wacrm.tech/docs/deployment-hostinger)
-- [Architecture](https://wacrm.tech/docs/architecture)
-- [Troubleshooting](https://wacrm.tech/docs/troubleshooting)
 
 ## Stack
 

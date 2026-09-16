@@ -751,8 +751,8 @@ async function processMessage(
   // Fire any automations that react to this webhook event. All dispatches
   // run here (not earlier) so the contact, conversation, and inbound
   // message all exist before any step — including send_message — runs.
-  // Fire-and-forget: a slow or failing automation must not block the
-  // webhook's 200 OK response to Meta.
+  // Awaited inside this function, which itself runs in `after()`, so
+  // Meta already got the 200 ack and we still finish the engine work.
   const inboundText = contentText ?? message.text?.body ?? ''
   const automationTriggers: (
     | 'new_contact_created'
@@ -781,20 +781,35 @@ async function processMessage(
   // listens to only one trigger runs only when that trigger matches.
   if (contactOutcome.wasCreated) automationTriggers.unshift('new_contact_created')
   if (isFirstInboundMessage) automationTriggers.unshift('first_inbound_message')
-  for (const triggerType of automationTriggers) {
-    runAutomationsForTrigger({
-      accountId,
-      triggerType,
-      contactId: contactRecord.id,
-      context: {
-        message_text: inboundText,
-        conversation_id: conversation.id,
-        // Only set on interactive taps; drives the interactive_reply
-        // trigger's exact-id match.
-        interactive_reply_id: interactiveReplyId ?? undefined,
-      },
-    }).catch((err) => console.error('[automations] dispatch failed:', err))
-  }
+
+  // Awaited inside `after()` — this does NOT delay the 200 ack to Meta.
+  // Detached `.catch()` promises were frozen when `processWebhook`
+  // returned, so automations often never ran even though inbound
+  // messages saved and the webhook logged 200 OK.
+  console.log('[webhook] inbound processed', {
+    conversationId: conversation.id,
+    messageType: message.type,
+    flowConsumed,
+    automationTriggers,
+  })
+  await Promise.all(
+    automationTriggers.map((triggerType) =>
+      runAutomationsForTrigger({
+        accountId,
+        triggerType,
+        contactId: contactRecord.id,
+        context: {
+          message_text: inboundText,
+          conversation_id: conversation.id,
+          // Only set on interactive taps; drives the interactive_reply
+          // trigger's exact-id match.
+          interactive_reply_id: interactiveReplyId ?? undefined,
+        },
+      }).catch((err) =>
+        console.error('[automations] dispatch failed:', triggerType, err)
+      )
+    )
+  )
 
   // AI auto-reply. Runs only for plain-text inbound the deterministic
   // flow runner did NOT consume (flows win over the LLM), and only when

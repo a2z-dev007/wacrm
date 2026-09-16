@@ -178,7 +178,15 @@ async function sendViaMeta(input: SendInput): Promise<{ whatsapp_message_id: str
       break
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      if (!isRecipientNotAllowedError(msg)) throw err
+      if (!isRecipientNotAllowedError(msg)) {
+        console.error('[automations/meta-send] Meta send failed', {
+          conversationId: input.conversationId,
+          phoneNumberId: config.phone_number_id,
+          to: v,
+          error: msg,
+        })
+        throw err
+      }
       lastError = err
     }
   }

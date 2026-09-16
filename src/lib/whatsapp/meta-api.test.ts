@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   INTERACTIVE_LIMITS,
+  formatMetaErrorMessage,
   sendInteractiveButtons,
   sendInteractiveList,
+  sendTextMessage,
 } from "./meta-api";
 
 // All assertions in this file run BEFORE the network call. We stub fetch
@@ -265,5 +267,63 @@ describe("sendInteractiveList — validation", () => {
         },
       },
     });
+  });
+});
+
+describe("formatMetaErrorMessage", () => {
+  it("includes HTTP status, Graph code, and an auth-token hint", () => {
+    const message = formatMetaErrorMessage(
+      401,
+      {
+        message: "Authentication Error",
+        type: "OAuthException",
+        code: 190,
+        error_subcode: 463,
+        fbtrace_id: "AbC123",
+      },
+      "Meta API error: 401",
+    );
+    expect(message).toContain("Authentication Error");
+    expect(message).toContain("HTTP 401");
+    expect(message).toContain("code=190");
+    expect(message).toContain("type=OAuthException");
+    expect(message).toContain("fbtrace_id=AbC123");
+    expect(message).toMatch(/access token is invalid or expired/i);
+  });
+});
+
+describe("sendTextMessage — Meta error envelope", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("throws a detailed message instead of only 'Authentication Error'", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            error: {
+              message: "Authentication Error",
+              type: "OAuthException",
+              code: 190,
+              fbtrace_id: "xyz",
+            },
+          }),
+          { status: 401 },
+        ),
+      ),
+    );
+
+    await expect(
+      sendTextMessage({
+        phoneNumberId: "pn",
+        accessToken: "bad-token",
+        to: "15551234567",
+        text: "hello",
+      }),
+    ).rejects.toThrow(
+      /Authentication Error \(HTTP 401, type=OAuthException, code=190/,
+    );
   });
 });

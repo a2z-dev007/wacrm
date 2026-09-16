@@ -103,11 +103,35 @@ export async function runAutomationsForTrigger(input: DispatchInput): Promise<vo
       console.error('[automations] fetch failed:', error)
       return
     }
-    if (!automations || automations.length === 0) return
+    if (!automations || automations.length === 0) {
+      console.warn('[automations] no active automations for trigger', {
+        accountId: input.accountId,
+        triggerType: input.triggerType,
+      })
+      return
+    }
+
+    console.log('[automations] dispatch', {
+      accountId: input.accountId,
+      triggerType: input.triggerType,
+      activeCount: automations.length,
+    })
 
     for (const automation of automations as Automation[]) {
-      if (!triggerMatches(automation, input.context)) continue
+      if (!triggerMatches(automation, input.context)) {
+        console.warn('[automations] skipped — trigger config did not match inbound', {
+          automationId: automation.id,
+          name: automation.name,
+          triggerType: automation.trigger_type,
+        })
+        continue
+      }
       try {
+        console.log('[automations] running', {
+          automationId: automation.id,
+          name: automation.name,
+          triggerType: input.triggerType,
+        })
         await executeAutomation(automation, input)
       } catch (err) {
         console.error('[automations] execute failed:', automation.id, err)
@@ -327,6 +351,12 @@ async function executeStepsFrom(args: ExecuteArgs): Promise<void> {
       })
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
+      console.error('[automations] step failed', {
+        automationId: args.automation.id,
+        stepId: step.id,
+        stepType: step.step_type,
+        error: msg,
+      })
       results.push({
         step_id: step.id,
         step_type: step.step_type,

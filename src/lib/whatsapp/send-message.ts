@@ -426,8 +426,19 @@ export async function sendMessageToConversation(
   } catch (err) {
     const message =
       err instanceof Error ? err.message : 'Unknown Meta API error';
-    console.error('[send-message] Meta send failed for all variants:', message);
-    throw new SendMessageError('meta_error', `Meta API error: ${message}`, 502);
+    console.error('[send-message] Meta send failed', {
+      conversationId,
+      phoneNumberId: config.phone_number_id,
+      to: workingPhone,
+      error: message,
+    });
+    throw new SendMessageError(
+      'meta_error',
+      message.startsWith('Meta API error:')
+        ? message
+        : `Meta API error: ${message}`,
+      502
+    );
   }
 
   if (workingPhone !== sanitizedPhone) {

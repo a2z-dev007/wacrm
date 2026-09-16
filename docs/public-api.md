@@ -1,5 +1,7 @@
 # Public API (`/api/v1`)
 
+> Hub: [Documentation index](./README.md). Dashboard usage: [Product guide](./product-guide.md).
+
 The public API lets you drive your wacrm instance from your own
 scripts and automations — send messages, manage contacts, launch
 broadcasts — without going through the dashboard UI.
